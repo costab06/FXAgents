@@ -67,7 +67,7 @@ Respond with JSON only (no markdown fences):
 }"""
 
 
-def build_graph(llm_factory: LLMFactory, settings: Settings) -> StateGraph:
+def build_graph(llm_factory: LLMFactory, settings: Settings, checkpointer=None) -> StateGraph:
     """Build and compile the FX analysis LangGraph pipeline."""
 
     def _llm(agent_id: str):
@@ -236,7 +236,7 @@ def build_graph(llm_factory: LLMFactory, settings: Settings) -> StateGraph:
     workflow.add_edge("risk_debate", "fund_manager")
     workflow.add_edge("fund_manager", END)
 
-    return workflow.compile()
+    return workflow.compile(checkpointer=checkpointer)
 
 
 def _parse_json(raw: str, agent: str) -> dict:
@@ -257,7 +257,7 @@ async def run_pipeline(
     checkpointer=None,
 ) -> FXState:
     """Run the full pipeline for a pair and return the final state."""
-    graph = build_graph(llm_factory, settings)
+    graph = build_graph(llm_factory, settings, checkpointer=checkpointer)
     config = {"configurable": {"thread_id": f"{pair}-{date.today().isoformat()}"}}
     initial: FXState = {
         "pair": pair,

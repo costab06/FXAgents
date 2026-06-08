@@ -68,10 +68,10 @@ Provide a technical analysis based on general market knowledge for {pair}."""
 Current price: {current:.5f}
 20-day high: {high_20:.5f}
 20-day low: {low_20:.5f}
-SMA-20: {sma20:.5f if sma20 else 'N/A'}
-SMA-50: {sma50:.5f if sma50 else 'N/A'}
-RSI-14: {rsi14:.1f if rsi14 else 'N/A'}
-ATR-14: {atr_pips:.1f} pips (price: {atr14:.5f}) if atr14 else 'N/A'
+SMA-20: {f'{sma20:.5f}' if sma20 else 'N/A'}
+SMA-50: {f'{sma50:.5f}' if sma50 else 'N/A'}
+RSI-14: {f'{rsi14:.1f}' if rsi14 else 'N/A'}
+ATR-14: {f'{atr_pips:.1f} pips (price: {atr14:.5f})' if atr14 else 'N/A'}
 Bars analysed: {len(closes)} daily candles
 
 Recent closes (last 10): {[f'{c:.5f}' for c in closes[-10:]]}

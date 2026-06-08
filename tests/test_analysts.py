@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from unittest.mock import AsyncMock, patch
 import pytest
 
 from fx_agent.infrastructure.llm import make_stub_llm
@@ -61,5 +62,25 @@ def test_news_analyst(settings, stub_llm):
 
 def test_sentiment_analyst(settings, stub_llm):
     result = asyncio.run(run_sentiment_analyst("EURUSD", stub_llm, settings))
+    assert "key_points" in result
+    assert "summary" in result
+
+
+_STUB_OHLCV = {
+    "dates": [f"2026-01-{i+1:02d}" for i in range(60)],
+    "open":  [1.0800 + i * 0.0001 for i in range(60)],
+    "high":  [1.0820 + i * 0.0001 for i in range(60)],
+    "low":   [1.0790 + i * 0.0001 for i in range(60)],
+    "close": [1.0810 + i * 0.0001 for i in range(60)],
+    "volume": [0.0] * 60,
+}
+
+
+def test_technical_analyst(settings, stub_llm):
+    with patch(
+        "fx_agent.analysts.technical.fetch_fx_ohlcv",
+        new=AsyncMock(return_value=_STUB_OHLCV),
+    ):
+        result = asyncio.run(run_technical_analyst("EURUSD", stub_llm, settings))
     assert "key_points" in result
     assert "summary" in result

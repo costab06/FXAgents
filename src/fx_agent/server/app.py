@@ -73,7 +73,7 @@ def list_runs():
 
 
 @app.post("/api/runs", response_model=RunSummary, tags=["runs"])
-def start_run(req: StartRunRequest):
+async def start_run(req: StartRunRequest):
     pair = req.pair.upper().replace("/", "").replace("-", "")
     run_id = uuid.uuid4().hex
     entry = RunEntry(

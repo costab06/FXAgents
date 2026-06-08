@@ -68,9 +68,12 @@ async def run_sentiment_analyst(
 ) -> dict:
     """Gather sentiment signals and produce a sentiment analysis."""
     # Fetch Finnhub news and Reddit posts in parallel
+    async def _no_articles():
+        return []
+
     finnhub_articles, reddit_posts = await asyncio.gather(
         fetch_finnhub_fx_news(pair, settings.finnhub_api_key or "", days=7)
-        if settings.finnhub_api_key else asyncio.coroutine(lambda: [])(),
+        if settings.finnhub_api_key else _no_articles(),
         _fetch_reddit_sentiment(pair, settings),
     )
 
