@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 
 from ..infrastructure.llm import LLMCallable
@@ -41,7 +43,6 @@ async def run_macro_analyst(
 
     base_rate, quote_rate = None, None
     if settings.fred_api_key:
-        import asyncio
         base_rate, quote_rate = await asyncio.gather(
             fetch_fred_rate(base_series, settings.fred_api_key) if base_series else _noop(),
             fetch_fred_rate(quote_series, settings.fred_api_key) if quote_series else _noop(),
@@ -62,7 +63,6 @@ Analyse the macro outlook for {pair} based on the above data and your knowledge 
 current central bank policy stances."""
 
     raw = await llm(SYSTEM_PROMPT, user_msg)
-    import json
     try:
         # strip markdown fences if present
         text = raw.strip()

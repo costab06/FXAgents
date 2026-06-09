@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 
@@ -42,7 +43,6 @@ async def run_carry_analyst(
     quote_rate = macro_data.get("quote_rate") if macro_data else None
 
     if (base_rate is None or quote_rate is None) and settings.fred_api_key:
-        import asyncio
         base_series = FRED_RATE_SERIES.get(base)
         quote_series = FRED_RATE_SERIES.get(quote)
         base_rate, quote_rate = await asyncio.gather(

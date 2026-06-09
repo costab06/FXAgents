@@ -81,18 +81,17 @@ def build_graph(llm_factory: LLMFactory, settings: Settings, checkpointer=None) 
             return {"macro_analysis": result}
         except Exception as e:
             logger.exception("macro_analyst_node failed")
-            return {"macro_analysis": {}, "errors": state.get("errors", []) + [str(e)]}
+            return {"macro_analysis": {}, "errors": [str(e)]}
 
     async def carry_analyst_node(state: FXState) -> dict:
         try:
-            result = await run_carry_analyst(
-                state["pair"], _llm("carry-analyst"), settings,
-                macro_data=state.get("macro_analysis"),
-            )
+            # macro_analysis is empty here (parallel execution) so carry always
+            # fetches its own FRED rates via the fallback path in run_carry_analyst
+            result = await run_carry_analyst(state["pair"], _llm("carry-analyst"), settings)
             return {"carry_analysis": result}
         except Exception as e:
             logger.exception("carry_analyst_node failed")
-            return {"carry_analysis": {}, "errors": state.get("errors", []) + [str(e)]}
+            return {"carry_analysis": {}, "errors": [str(e)]}
 
     async def technical_analyst_node(state: FXState) -> dict:
         try:
@@ -100,7 +99,7 @@ def build_graph(llm_factory: LLMFactory, settings: Settings, checkpointer=None) 
             return {"technical_analysis": result}
         except Exception as e:
             logger.exception("technical_analyst_node failed")
-            return {"technical_analysis": {}, "errors": state.get("errors", []) + [str(e)]}
+            return {"technical_analysis": {}, "errors": [str(e)]}
 
     async def sentiment_analyst_node(state: FXState) -> dict:
         try:
@@ -108,7 +107,7 @@ def build_graph(llm_factory: LLMFactory, settings: Settings, checkpointer=None) 
             return {"sentiment_analysis": result}
         except Exception as e:
             logger.exception("sentiment_analyst_node failed")
-            return {"sentiment_analysis": {}, "errors": state.get("errors", []) + [str(e)]}
+            return {"sentiment_analysis": {}, "errors": [str(e)]}
 
     async def news_analyst_node(state: FXState) -> dict:
         try:
@@ -116,7 +115,7 @@ def build_graph(llm_factory: LLMFactory, settings: Settings, checkpointer=None) 
             return {"news_analysis": result}
         except Exception as e:
             logger.exception("news_analyst_node failed")
-            return {"news_analysis": {}, "errors": state.get("errors", []) + [str(e)]}
+            return {"news_analysis": {}, "errors": [str(e)]}
 
     async def research_debate_node(state: FXState) -> dict:
         try:
@@ -136,7 +135,7 @@ def build_graph(llm_factory: LLMFactory, settings: Settings, checkpointer=None) 
             }
         except Exception as e:
             logger.exception("research_debate_node failed")
-            return {"errors": state.get("errors", []) + [str(e)]}
+            return {"errors": [str(e)]}
 
     async def trader_node(state: FXState) -> dict:
         try:
@@ -158,7 +157,7 @@ def build_graph(llm_factory: LLMFactory, settings: Settings, checkpointer=None) 
             return {"trade_recommendation": result}
         except Exception as e:
             logger.exception("trader_node failed")
-            return {"errors": state.get("errors", []) + [str(e)]}
+            return {"errors": [str(e)]}
 
     async def risk_debate_node(state: FXState) -> dict:
         try:
@@ -179,7 +178,7 @@ def build_graph(llm_factory: LLMFactory, settings: Settings, checkpointer=None) 
             }
         except Exception as e:
             logger.exception("risk_debate_node failed")
-            return {"errors": state.get("errors", []) + [str(e)]}
+            return {"errors": [str(e)]}
 
     async def fund_manager_node(state: FXState) -> dict:
         try:
@@ -199,7 +198,7 @@ def build_graph(llm_factory: LLMFactory, settings: Settings, checkpointer=None) 
             return {"final_decision": result}
         except Exception as e:
             logger.exception("fund_manager_node failed")
-            return {"errors": state.get("errors", []) + [str(e)]}
+            return {"errors": [str(e)]}
 
     # ── Parallel analyst fan-out node ──────────────────────────────────────────
 

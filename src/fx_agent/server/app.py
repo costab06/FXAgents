@@ -16,7 +16,8 @@ from fastapi.staticfiles import StaticFiles
 
 from ..infrastructure.llm import make_anthropic_llm
 from ..infrastructure.settings import Settings
-from ..orchestrator.graph import run_pipeline
+from ..orchestrator.graph import build_graph
+from ..orchestrator.state import FXState
 from .models import RunEntry, RunStatus, RunSummary, StartRunRequest
 from .store import RunStore
 
@@ -25,6 +26,18 @@ UTC = timezone.utc
 
 settings = Settings()
 store = RunStore()
+
+# Built once at startup — reused across all pipeline runs
+_llm_factory = make_anthropic_llm(settings.anthropic_api_key)
+_graph = build_graph(_llm_factory, settings)
+
+_NODE_LABELS = {
+    "analysts":        "Analysts (macro, carry, technical, sentiment, news)",
+    "research_debate": "Research debate",
+    "trader":          "Trader",
+    "risk_debate":     "Risk debate",
+    "fund_manager":    "Fund manager",
+}
 
 
 @asynccontextmanager
@@ -179,25 +192,25 @@ async def _run_pipeline(run_id: str, pair: str) -> None:
             store.update(e)
 
     try:
-        llm_factory = make_anthropic_llm(settings.anthropic_api_key)
+        config = {"configurable": {"thread_id": f"{pair}-{date.today().isoformat()}"}}
+        initial: FXState = {
+            "pair": pair,
+            "analysis_date": date.today().isoformat(),
+            "errors": [],
+        }
 
-        _log("Running macro analyst...")
-        _log("Running carry analyst...")
-        _log("Running technical analyst...")
-        _log("Running sentiment analyst...")
-        _log("Running news analyst...")
+        async for chunk in _graph.astream(initial, config, stream_mode="updates"):
+            for node_name in chunk:
+                label = _NODE_LABELS.get(node_name, node_name)
+                _log(f"{label} complete")
 
-        final_state = await run_pipeline(pair, llm_factory, settings)
-
-        _log("Research debate complete")
-        _log("Trade recommendation generated")
-        _log("Risk analysis complete")
-        _log("Fund manager decision complete")
+        snapshot = await _graph.aget_state(config)
+        final_state = dict(snapshot.values)
 
         entry = store.get(run_id)
         entry.status = RunStatus.COMPLETED
         entry.completed_at = datetime.now(UTC)
-        entry.result = dict(final_state)
+        entry.result = final_state
         entry.log.append("Analysis complete")
         store.update(entry)
         logger.info("Pipeline completed run_id=%s pair=%s", run_id, pair)

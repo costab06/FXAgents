@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, TypedDict
+import operator
+from typing import Annotated, Any, TypedDict
 
 
 class FXState(TypedDict, total=False):
@@ -36,4 +37,5 @@ class FXState(TypedDict, total=False):
     final_decision: dict[str, Any]
 
     # ── Metadata ──────────────────────────────────────────────────────────────
-    errors: list[str]
+    # operator.add reducer so parallel failing nodes all accumulate their errors
+    errors: Annotated[list[str], operator.add]

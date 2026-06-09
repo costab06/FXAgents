@@ -10,29 +10,45 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+# Expanded search terms per currency code so filtering doesn't match on
+# three-letter substrings like "eur" appearing in "Europe" or "entrepreneur".
+_CURRENCY_TERMS: dict[str, list[str]] = {
+    "EUR": ["euro ", "euros", " eur ", "ecb", "european central bank", "eurozone", "lagarde"],
+    "USD": ["dollar", " usd ", "federal reserve", " fed ", "fomc", "powell"],
+    "GBP": ["sterling", " gbp ", "pound", "bank of england", " boe ", "bailey"],
+    "JPY": [" yen", " jpy ", "bank of japan", " boj ", "ueda"],
+    "CHF": ["franc", " chf ", "snb", "swiss national bank"],
+    "AUD": ["aussie", " aud ", "reserve bank of australia", " rba "],
+    "CAD": ["loonie", " cad ", "bank of canada"],
+    "NZD": ["kiwi", " nzd ", "rbnz", "reserve bank of new zealand"],
+    "SEK": ["krona", " sek ", "riksbank"],
+    "NOK": ["krone", " nok ", "norges bank"],
+}
+
+
+def _matches_pair(article: dict, base: str, quote: str) -> bool:
+    text = (
+        (article.get("headline") or "") + " " + (article.get("summary") or "")
+    ).lower()
+    base_terms = _CURRENCY_TERMS.get(base.upper(), [base.lower()])
+    quote_terms = _CURRENCY_TERMS.get(quote.upper(), [quote.lower()])
+    return any(t in text for t in base_terms) or any(t in text for t in quote_terms)
+
+
 async def fetch_finnhub_fx_news(pair: str, api_key: str, days: int = 7) -> list[dict]:
     """Fetch forex news from Finnhub for a currency pair."""
     if not api_key:
         return []
 
+    base = pair[:3]
+    quote = pair[3:]
+
     def _sync() -> list[dict]:
         import finnhub
         client = finnhub.Client(api_key=api_key)
-        # Finnhub forex news uses the pair symbol like "OANDA:EUR_USD"
-        base = pair[:3]
-        quote = pair[3:]
-        category = "forex"
-        to_date = date.today().strftime("%Y-%m-%d")
-        from_date = (date.today() - timedelta(days=days)).strftime("%Y-%m-%d")
         try:
-            articles = client.general_news(category=category) or []
-            # Filter for articles mentioning either currency
-            relevant = [
-                a for a in articles
-                if base.lower() in (a.get("headline") or "").lower()
-                or quote.lower() in (a.get("headline") or "").lower()
-                or base.lower() in (a.get("summary") or "").lower()
-            ]
+            articles = client.general_news(category="forex") or []
+            relevant = [a for a in articles if _matches_pair(a, base, quote)]
             return [
                 {
                     "title": a.get("headline", ""),
@@ -46,7 +62,7 @@ async def fetch_finnhub_fx_news(pair: str, api_key: str, days: int = 7) -> list[
             logger.exception("fetch_finnhub_fx_news failed pair=%s", pair)
             return []
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _sync)
 
 
@@ -85,7 +101,7 @@ async def fetch_finnhub_forex_candles(
             logger.exception("fetch_finnhub_forex_candles failed pair=%s", pair)
             return {}
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _sync)
 
 
@@ -106,7 +122,7 @@ async def fetch_fred_rate(series_id: str, api_key: str) -> float | None:
             logger.exception("fetch_fred_rate series=%s failed", series_id)
             return None
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _sync)
 
 
