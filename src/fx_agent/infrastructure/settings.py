@@ -85,6 +85,27 @@ class Settings(BaseSettings):
     reddit_client_secret: str | None = None
     reddit_user_agent: str = "fx-agent/1.0"
 
+    # ── OANDA v20 ─────────────────────────────────────────────────────────────
+    oanda_api_key: str | None = None
+    oanda_account_id: str | None = None
+    oanda_env: str = "practice"          # "practice" | "live"
+
+    # ── Interactive Brokers TWS/Gateway ───────────────────────────────────────
+    ib_host: str = "127.0.0.1"
+    ib_port: int = 7497                  # 7497=paper TWS, 7496=live TWS, 4002=paper GW
+    ib_client_id: int = 1
+
+    # ── FIX session (FXSpotStream / direct bank) ──────────────────────────────
+    fix_config_path: str = "fix.cfg"
+
+    # ── Smart Order Router ────────────────────────────────────────────────────
+    sor_stale_seconds: float = 3.0       # reject quotes older than this
+    sor_max_slippage_pips: float = 3.0   # default max slippage per order
+    sor_enabled_feeds: list[str] = Field(
+        default=["oanda"],
+        description="Feeds to activate: 'oanda', 'ib', 'fix'",
+    )
+
     # ── Default FX pairs ──────────────────────────────────────────────────────
     default_pairs: list[str] = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"]
 

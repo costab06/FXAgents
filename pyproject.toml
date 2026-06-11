@@ -30,6 +30,8 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
     "sse-starlette>=2.1",
+    # HTTP client (market feeds)
+    "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
@@ -38,6 +40,12 @@ dev = [
     "pytest-asyncio>=0.24",
     "fakeredis>=2.20",
     "ruff>=0.4",
+]
+market = [
+    # Interactive Brokers feed
+    "ib_insync>=0.9",
+    # FIX protocol feed
+    "quickfix>=1.15",
 ]
 
 [tool.hatch.build.targets.wheel]
