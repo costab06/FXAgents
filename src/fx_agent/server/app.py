@@ -33,6 +33,9 @@ store = RunStore()
 _llm_factory = make_anthropic_llm(settings.anthropic_api_key)
 _graph = build_graph(_llm_factory, settings, checkpointer=MemorySaver())
 
+# Strong references to background tasks prevent GC mid-execution
+_background_tasks: set[asyncio.Task] = set()
+
 _NODE_LABELS = {
     "analysts":        "Analysts (macro, carry, technical, sentiment, news)",
     "research_debate": "Research debate",
@@ -98,7 +101,9 @@ async def start_run(req: StartRunRequest):
         status=RunStatus.PENDING,
     )
     store.create(entry)
-    asyncio.create_task(_run_pipeline(run_id, pair))
+    task = asyncio.create_task(_run_pipeline(run_id, pair))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
     return RunSummary(
         run_id=run_id,
         pair=pair,
@@ -210,12 +215,24 @@ async def _run_pipeline(run_id: str, pair: str) -> None:
         final_state = dict(snapshot.values)
 
         entry = store.get(run_id)
-        entry.status = RunStatus.COMPLETED
+        node_errors: list[str] = final_state.get("errors") or []
+        if node_errors:
+            for err in node_errors:
+                _log(f"Node error: {err}")
+            logger.warning("Pipeline completed with %d node error(s) run_id=%s", len(node_errors), run_id)
+
+        if final_state.get("final_decision"):
+            entry.status = RunStatus.COMPLETED
+            entry.log.append("Analysis complete")
+        else:
+            entry.status = RunStatus.FAILED
+            entry.error = "; ".join(node_errors) if node_errors else "Pipeline produced no final decision"
+            entry.log.append(f"Failed: {entry.error}")
+
         entry.completed_at = datetime.now(UTC)
         entry.result = final_state
-        entry.log.append("Analysis complete")
         store.update(entry)
-        logger.info("Pipeline completed run_id=%s pair=%s", run_id, pair)
+        logger.info("Pipeline finished run_id=%s pair=%s status=%s", run_id, pair, entry.status)
 
     except Exception as exc:
         logger.exception("Pipeline failed run_id=%s", run_id)
