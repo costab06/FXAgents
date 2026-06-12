@@ -1,0 +1,26 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+ui/node_modules/
+
+# Secrets & local config
+.env
+.env~
+
+# Dev/test artifacts
+tests/
+*.pptx
+slides.html
+build_slides*.py
+TODO.txt
+
+# Git
+.git/
+.gitignore

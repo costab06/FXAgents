@@ -18,4 +18,4 @@ RUN uv sync --frozen --no-dev
 
 COPY --from=ui-build /build/dist ui/dist
 
-CMD ["uv", "run", "python", "-m", "fx_agent", "--mode", "server"]
+CMD ["uv", "run", "python", "-m", "fx_agent", "server"]
