@@ -14,6 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from langgraph.checkpoint.memory import MemorySaver
+
 from ..infrastructure.llm import make_anthropic_llm
 from ..infrastructure.settings import Settings
 from ..orchestrator.graph import build_graph
@@ -29,7 +31,7 @@ store = RunStore()
 
 # Built once at startup — reused across all pipeline runs
 _llm_factory = make_anthropic_llm(settings.anthropic_api_key)
-_graph = build_graph(_llm_factory, settings)
+_graph = build_graph(_llm_factory, settings, checkpointer=MemorySaver())
 
 _NODE_LABELS = {
     "analysts":        "Analysts (macro, carry, technical, sentiment, news)",
